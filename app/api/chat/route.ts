@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openAiKey = process.env.OPENAI_API_KEY;
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +14,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if using a demo/fake key
+    if (!openAiKey || openAiKey.includes('projekti')) {
+      // Return a demo response
+      const demoResponses = [
+        `Demo përgjigje për: "${message}"\n\nKjo është një përgjigje demo sepse nuk keni vendosur një çelës valid OpenAI. Për funksionimin real, siguroni që të keni një çelës valid nga https://platform.openai.com/`,
+        `Përgjigja për pyetjen tuaj: "${message}"\n\nEste është më vetëm një demo. Për të përdorur AI-në real, duhet të shtoni çelësin tuaj OpenAI në .env.local`,
+        `Faleminderit për pyetjen: "${message}"\n\nNë modalitetin demo, nuk mund të lidhem me OpenAI. Shtoni çelësin tuaj personal për përgjigje real.`
+      ];
+      const randomResponse = demoResponses[Math.floor(Math.random() * demoResponses.length)];
+      return NextResponse.json({ reply: randomResponse });
+    }
+
+    const client = new OpenAI({
+      apiKey: openAiKey,
+    });
+
     const completion = await client.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -27,10 +41,10 @@ export async function POST(request: NextRequest) {
 
     const reply = completion.choices[0].message.content;
     return NextResponse.json({ reply });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error);
     return NextResponse.json(
-      { error: 'Gabim gjatë komunikimit me AI' },
+      { error: 'Gabim gjatë komunikimit me AI. Siguroni që të keni një çelës valid OpenAI.' },
       { status: 500 }
     );
   }
